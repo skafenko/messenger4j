@@ -2,11 +2,10 @@ package com.github.messenger4j;
 
 import com.github.messenger4j.spi.MessengerHttpClient;
 import java.io.IOException;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import java.lang.reflect.Field;
+import java.util.concurrent.ThreadPoolExecutor;
+
+import okhttp3.*;
 
 /**
  * @author Max Grabenhorst
@@ -17,6 +16,24 @@ final class DefaultMessengerHttpClient implements MessengerHttpClient {
     private static final String APPLICATION_JSON_CHARSET_UTF_8 = "application/json; charset=utf-8";
 
     private final OkHttpClient okHttp = new OkHttpClient();
+
+    @Override
+    public void destroy() {
+        ConnectionPool connectionPool = okHttp.connectionPool();
+        connectionPool.evictAll();
+
+        okHttp.dispatcher().executorService().shutdownNow();
+
+        Class<ConnectionPool> connectionPoolClass = ConnectionPool.class;
+        try {
+            Field field = connectionPoolClass.getDeclaredField("executor");
+            field.setAccessible(true);
+            ThreadPoolExecutor executor = ((ThreadPoolExecutor) field.get(null));
+            executor.shutdownNow();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     public HttpResponse execute(HttpMethod httpMethod, String url, String jsonBody) throws IOException {

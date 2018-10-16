@@ -11,6 +11,8 @@ public interface MessengerHttpClient {
 
     HttpResponse execute(HttpMethod httpMethod, String url, String jsonBody) throws IOException;
 
+    default void destroy() {}
+
     /**
      * @since 1.0.0
      */

@@ -1,26 +1,11 @@
 package com.github.messenger4j;
 
-import static com.github.messenger4j.internal.gson.GsonUtil.Constants.PROP_ENTRY;
-import static com.github.messenger4j.internal.gson.GsonUtil.Constants.PROP_MESSAGING;
-import static com.github.messenger4j.internal.gson.GsonUtil.Constants.PROP_OBJECT;
-import static com.github.messenger4j.internal.gson.GsonUtil.getPropertyAsJsonArray;
-import static com.github.messenger4j.internal.gson.GsonUtil.getPropertyAsString;
-import static com.github.messenger4j.spi.MessengerHttpClient.HttpMethod.DELETE;
-import static com.github.messenger4j.spi.MessengerHttpClient.HttpMethod.GET;
-import static com.github.messenger4j.spi.MessengerHttpClient.HttpMethod.POST;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
-
 import com.github.messenger4j.exception.MessengerApiException;
 import com.github.messenger4j.exception.MessengerApiExceptionFactory;
 import com.github.messenger4j.exception.MessengerIOException;
 import com.github.messenger4j.exception.MessengerVerificationException;
 import com.github.messenger4j.internal.gson.GsonFactory;
-import com.github.messenger4j.messengerprofile.DeleteMessengerSettingsPayload;
-import com.github.messenger4j.messengerprofile.MessengerSettingProperty;
-import com.github.messenger4j.messengerprofile.MessengerSettings;
-import com.github.messenger4j.messengerprofile.SetupResponse;
-import com.github.messenger4j.messengerprofile.SetupResponseFactory;
+import com.github.messenger4j.messengerprofile.*;
 import com.github.messenger4j.send.MessageResponse;
 import com.github.messenger4j.send.MessageResponseFactory;
 import com.github.messenger4j.send.Payload;
@@ -32,11 +17,10 @@ import com.github.messenger4j.userprofile.UserProfileFactory;
 import com.github.messenger4j.webhook.Event;
 import com.github.messenger4j.webhook.SignatureUtil;
 import com.github.messenger4j.webhook.factory.EventFactory;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,8 +28,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
+
+import static com.github.messenger4j.internal.gson.GsonUtil.Constants.*;
+import static com.github.messenger4j.internal.gson.GsonUtil.getPropertyAsJsonArray;
+import static com.github.messenger4j.internal.gson.GsonUtil.getPropertyAsString;
+import static com.github.messenger4j.spi.MessengerHttpClient.HttpMethod.*;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 
 /**
  * @author Max Grabenhorst
@@ -79,8 +68,8 @@ public final class Messenger {
 
     private static final String FB_GRAPH_API_URL_MESSAGES = "https://graph.facebook.com/v2.11/me/messages?access_token=%s";
     private static final String FB_GRAPH_API_URL_MESSENGER_PROFILE = "https://graph.facebook.com/v2.11/me/messenger_profile?access_token=%s";
-    private static final String FB_GRAPH_API_URL_USER = "https://graph.facebook.com/v2.11/%s?fields=first_name," +
-            "last_name,profile_pic,locale,timezone,gender,is_payment_enabled,last_ad_referral&access_token=%s";
+    private static final String FB_GRAPH_API_URL_USER = "https://graph.facebook.com/%s?fields=first_name," +
+            "last_name,profile_pic,locale,timezone,gender&access_token=%s";
 
     private final String pageAccessToken;
     private final String appSecret;
@@ -183,6 +172,10 @@ public final class Messenger {
         messengerSettingPropertyList.addAll(Arrays.asList(properties));
         final DeleteMessengerSettingsPayload payload = DeleteMessengerSettingsPayload.create(messengerSettingPropertyList);
         return doRequest(DELETE, messengerProfileRequestUrl, of(payload), SetupResponseFactory::create);
+    }
+
+    public void destroy() {
+        httpClient.destroy();
     }
 
     private <R> R doRequest(HttpMethod httpMethod, String requestUrl, Optional<Object> payload,
